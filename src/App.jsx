@@ -1,7 +1,9 @@
+/* eslint-disable no-unused-vars */
 import React, { useState , useEffect } from 'react'
 import Search  from './components/Search.jsx'
 import Spinner from './components/Spinner.jsx';
-
+import MovieCard from './components/MovieCard.jsx';
+import { useDebounce } from 'react-use';
 
 
 const API_BASE_URL="https://api.themoviedb.org/3";
@@ -28,14 +30,20 @@ const App = () => {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchMovies = async ()=>{
+  const [debouncedSearchTerm, setDebouncedSearchTerm] =useState('');
+
+  useDebounce(()=>setDebouncedSearchTerm(searchTerm),500,[searchTerm])
+
+  const fetchMovies = async ( query =' ')=>{
 
     setIsLoading(true);
     setErrorMessage('');
 
-
+  
     try{
-      const endpoint=`${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
+    
+      const endpoint=query ? `${API_BASE_URL}/search/movie?query=${encodeURIComponent(query)}` :
+      `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
       const response = await fetch(endpoint,API_OPTION);
 
       if(!response.ok){
@@ -63,9 +71,8 @@ const App = () => {
   }
 
   useEffect(() =>{
-    fetchMovies();
-
-  },[]);// only run at start
+    fetchMovies(debouncedSearchTerm);
+  },[debouncedSearchTerm]);// only run at start
 
 
 
@@ -92,11 +99,11 @@ const App = () => {
           {isLoading ?(
             <Spinner/>
           
-          ): errorMessage ? (<p className='text-red-500'>{errorMessage}</p>)
-          :(
+          ): errorMessage ? (<p className='text-red-500'>{errorMessage}</p>) :(
             <ul>
               {movieList.map((movie)=>(
-                <p key={movie.id} className='text-white'>{movie.title}</p>
+                <MovieCard  key={movie.id} movie={movie} />  
+                
               ))}
             </ul>
           )
