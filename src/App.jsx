@@ -4,6 +4,7 @@ import Search  from './components/Search.jsx'
 import Spinner from './components/Spinner.jsx';
 import MovieCard from './components/MovieCard.jsx';
 import { useDebounce } from 'react-use';
+import { getTrendingMovies, updateSearchCount } from './appwrite.js';
 
 
 const API_BASE_URL="https://api.themoviedb.org/3";
@@ -32,6 +33,8 @@ const App = () => {
 
   const [debouncedSearchTerm, setDebouncedSearchTerm] =useState('');
 
+  const [trendingMovies,setTrendingMovies] =useState([]);
+
   useDebounce(()=>setDebouncedSearchTerm(searchTerm),500,[searchTerm])
 
   const fetchMovies = async ( query =' ')=>{
@@ -59,7 +62,9 @@ const App = () => {
       }
       setMovieList(data.results || []);
 
-      console.log(data);
+      if(query && data.results.length > 0){
+        await updateSearchCount(query,data.results[0])
+      }
 
     }
     catch(e){
@@ -70,21 +75,37 @@ const App = () => {
     }
   }
 
+  const loadTrendingMovies = async () => {
+    try {
+      const movies = await getTrendingMovies();
+
+      setTrendingMovies(movies);
+
+    } catch (error) {
+      console.error(`Error fetching trending movies: ${error}`);
+    }
+  }
+
+
   useEffect(() =>{
     fetchMovies(debouncedSearchTerm);
   },[debouncedSearchTerm]);// only run at start
 
-
+  useEffect(()=>{
+    loadTrendingMovies();
+  },[]);
 
 
   return (
 
 
     <main>
+      
       <div className='pattern'/>
 
       <div className=" wrapper">  
         <header>
+        <script src="http://localhost:8097"></script>
         <img src="./hero-img.png" alt='Hero Banner'/>
 
           <h1>
@@ -94,6 +115,22 @@ const App = () => {
 
 
         </header>
+
+        {trendingMovies.length>0 && (
+          <section className='trending'>
+            <h2>Trending Movies</h2>
+            <ul>
+              {trendingMovies.map((movie,index)=>(
+                <li key={movie.$id}>
+                  <p>{index +1}</p>
+                  <img src={movie.poster_url} alt={movie.title}/>
+
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         <section>
           <h2>All Movies</h2>
           {isLoading ?(
